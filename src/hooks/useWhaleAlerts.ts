@@ -1,13 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { WhaleBet, generateWhaleBet, generateTraders, Trader } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useWhaleAlerts() {
   const [bets, setBets] = useState<WhaleBet[]>([]);
   const [traders, setTraders] = useState<Trader[]>([]);
   const [newBetIds, setNewBetIds] = useState<Set<string>>(new Set());
   const [isLive, setIsLive] = useState(true);
+  const [telegramEnabled, setTelegramEnabled] = useState(true);
   const { toast } = useToast();
+
+  // Send Telegram notification for whale bet
+  const sendTelegramAlert = useCallback(async (bet: WhaleBet) => {
+    if (!telegramEnabled) return;
+    
+    try {
+      const { error } = await supabase.functions.invoke('send-telegram-alert', {
+        body: {
+          id: bet.id,
+          market: bet.market,
+          amount: bet.amount,
+          position: bet.type,
+          trader: bet.trader,
+          timestamp: bet.timestamp.toISOString(),
+          odds: bet.odds,
+        },
+      });
+      
+      if (error) {
+        console.error('Failed to send Telegram alert:', error);
+      } else {
+        console.log('Telegram alert sent for bet:', bet.id);
+      }
+    } catch (err) {
+      console.error('Error sending Telegram alert:', err);
+    }
+  }, [telegramEnabled]);
   
   // Initialize with some historical data
   useEffect(() => {
@@ -32,6 +61,9 @@ export function useWhaleAlerts() {
         description: `${newBet.trader} bet $${(newBet.amount / 1000).toFixed(0)}K on "${newBet.market.slice(0, 30)}..."`,
       });
       
+      // Send Telegram notification
+      sendTelegramAlert(newBet);
+      
       // Remove "new" status after animation
       setTimeout(() => {
         setNewBetIds(prev => {
@@ -43,7 +75,7 @@ export function useWhaleAlerts() {
     }, 8000 + Math.random() * 7000); // Random interval 8-15 seconds
     
     return () => clearInterval(interval);
-  }, [isLive, toast]);
+  }, [isLive, toast, sendTelegramAlert]);
   
   // Calculate stats
   const stats = {
@@ -58,6 +90,10 @@ export function useWhaleAlerts() {
   const toggleLive = useCallback(() => {
     setIsLive(prev => !prev);
   }, []);
+
+  const toggleTelegram = useCallback(() => {
+    setTelegramEnabled(prev => !prev);
+  }, []);
   
   return {
     bets,
@@ -66,5 +102,7 @@ export function useWhaleAlerts() {
     stats,
     isLive,
     toggleLive,
+    telegramEnabled,
+    toggleTelegram,
   };
 }
