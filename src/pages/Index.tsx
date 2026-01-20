@@ -4,10 +4,11 @@ import { Leaderboard } from "@/components/Leaderboard";
 import { StatsCard } from "@/components/StatsCard";
 import { useWhaleAlerts } from "@/hooks/useWhaleAlerts";
 import { formatCurrency } from "@/lib/mockData";
-import { DollarSign, Activity, TrendingUp, Zap } from "lucide-react";
+import { DollarSign, Activity, TrendingUp, Zap, Bell, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const Index = () => {
-  const { bets, traders, newBetIds, stats } = useWhaleAlerts();
+  const { bets, traders, newBetIds, stats, telegramEnabled, toggleTelegram } = useWhaleAlerts();
   
   return (
     <div className="min-h-screen bg-background">
@@ -96,10 +97,26 @@ const Index = () => {
       </main>
       
       {/* Threshold Indicator */}
-      <div className="fixed bottom-4 left-4 glass-card px-4 py-2 flex items-center gap-2 text-sm">
+      <div className="fixed bottom-4 left-4 glass-card px-4 py-2 flex items-center gap-3 text-sm">
         <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
         <span className="text-muted-foreground">Monitoring bets</span>
         <span className="font-mono text-primary font-semibold">&gt; $50,000</span>
+        
+        <div className="h-4 w-px bg-border mx-1" />
+        
+        <div className="flex items-center gap-2">
+          {telegramEnabled ? (
+            <Bell className="w-4 h-4 text-primary" />
+          ) : (
+            <BellOff className="w-4 h-4 text-muted-foreground" />
+          )}
+          <Switch 
+            checked={telegramEnabled} 
+            onCheckedChange={toggleTelegram}
+            aria-label="Toggle Telegram notifications"
+          />
+          <span className="text-xs text-muted-foreground">Telegram</span>
+        </div>
       </div>
     </div>
   );
